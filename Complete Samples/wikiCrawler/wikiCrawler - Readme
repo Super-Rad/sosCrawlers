@@ -1,0 +1,4 @@
+wikiCrawler - Readme
+
+wikiCrawler-
+I created this while following a tutorial from the book I've listed as my primary resource. However it never quite worked as Wikipedia has things put in place to detect automated systems connecting to their servers. Each my crawler tries to send a get request Wikipedia sends "en.wikipedia.org/wiki/Wikipedia:Protection_policy#semi" which leads to their policy describing unregistered IPs. I would like to revisit this one if I figure out how to get around this.
