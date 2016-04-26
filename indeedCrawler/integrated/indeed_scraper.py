@@ -25,7 +25,7 @@ def get_soup(url):
         print ('Something went wrong when opening initial url')
         print ('None will be returned instead')
         html = None
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(html, "html.parser")
     return soup
 
 # function to clean the html from and return a set of words in a job description on indeed
@@ -95,11 +95,13 @@ total_jobs_int = int(total_jobs)
 # indeed returns 10 job listings per page
 num_pages = total_jobs_int/10
 
+print(type(num_pages))
+
 # initializing list to hold job descriptions
 job_descriptions = []
 
 # loop to drive through all of the search result pages
-for i in range(1,num_pages+1): 
+for i in range(1, num_pages+1): 
         print ('Getting page', i)
         start_num = str(i*10) 
         current_page = ''.join([final_url, '&start=', start_num])
