@@ -1,0 +1,19 @@
+indeed scraper structure
+
+Using package template from Kenneth Reitz.
+Located here: 
+    https://github.com/kennethreitz/samplemod
+
+Files:
+
+crawler/indeed_crawler.py
+    Module for my project. Essentially the main.
+
+
+crawler/radscraping/
+    radscraping is a package of the functions I built in order to scrape indeed.
+
+    _init_.py
+    get_soup
+    clean_html
+    job_bool
