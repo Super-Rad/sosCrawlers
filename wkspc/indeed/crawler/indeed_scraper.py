@@ -100,7 +100,7 @@ job_descriptions = []
 keywords_all = []
 print("num_pages: ", num_pages)
 # loop to drive through all of the search result pages
-for i in range(1, 100): 
+for i in range(1, num_pages): 
     print ('Getting page', i)
     start_num = str(i) 
     current_page = ''.join([final_url, '&start=', start_num])
@@ -150,4 +150,4 @@ with open("4_26.csv", mode='w', newline= '') as csv_file:
     
     for pair in keyword_count:
         keyword_writer.writerow([pair[0], pair[1]])
-print("CSV done... Hopefully")
+print("CSV done.")
