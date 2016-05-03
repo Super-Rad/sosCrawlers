@@ -5,36 +5,35 @@
 from bs4 import BeautifulSoup
 from time import sleep
 from collections import Counter
-import urllib.request
+import requests
 import re
 import csv
 import datetime
 
 # parameters are currently here
-csv_name = "4_18_2016"
 city = "Seattle"
 state = "WA"
 search_words = 'software+engineer'
 
 # function to get soup object of a url
 def get_soup(url):
-    try:
-        print("Connecting to: ", url)
-        html = urllib.request.urlopen(url).read()
-    except:
-        print ('Something went wrong when opening initial url')
-        print ('None will be returned instead')
-        html = None
+    headers = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64)'}
+    
+    print("Connecting to: ", url)
+    requested = requests.get(url, headers=headers, allow_redirects=True)
+    print("Got: ", requested.url)
+    
+    html = requested.text
     soup = BeautifulSoup(html, "html.parser")
     return soup
 
-# function to clean the html from and return a set of words in a job description on indeed
+# function to clean the html from and return a set of words in a job description
 def clean_html(website):
     
     site_soup = get_soup(website)
 
     # remove script and style tags from object
-    for script in soup_obj (["script","style"]):
+    for script in site_soup (["script","style"]):
         script.extract()
 
     # get text from object
@@ -50,27 +49,28 @@ def clean_html(website):
         return chunk_out
 
     # more chunk formatting removes blank lines and end of lines
-    text = ''.join(chunk_space(chunk) for chunk in chunks if chunk).encode('utf-8')
-
-    # try to get unicode, some websites don't less me do it this way. Hence the try.
-    try:
-        text = text.decode('unicode_escape').encode('ascii','ignore')
-    except:
-        return
+    text = ''.join(chunk_space(chunk) for chunk in chunks if chunk)
 
     # regex, need + for c++
-    text = re.sub("[^a-zA-z.+"," ", text)
+    text = re.sub("[^a-zA-Z.+3]"," ", text)
+    
+    
+    text = text.lower().split()
 
     #return only the set
     text = list(set(text))
-
     return text
 
+def job_bool(job):
+    if 'clk' in job: 
+        if not 'page' in job:
+            return job
 
+        
 # need to change input to be keywords later
 #def crawl_indeed(city = None, state = None):
 
-base_url = 'html://www.indeed.com'   
+base_url = 'http://www.indeed.com'   
 
 # Join search paramaters to construct url
 final_url_paramters = ['http://www.indeed.com/jobs?q=', search_words, '&l=', city,'%2C+', state]
@@ -86,55 +86,68 @@ searchCount = re.findall('\d+', searchCount)
 if len(searchCount) > 3:
     total_jobs = (int(searchCount[2])*1000) + int(searchCount[3])
 else:
-    total_jobs = int(searChount[2])
+    total_jobs = int(searchCount[2])
 
 print ('Found ',total_jobs,' results with this search.')
 
 total_jobs_int = int(total_jobs)
 
 # indeed returns 10 job listings per page
-num_pages = total_jobs_int/10
-
-print(type(num_pages))
+num_pages = (total_jobs_int)//10
 
 # initializing list to hold job descriptions
 job_descriptions = []
-
+keywords_all = []
+print("num_pages: ", num_pages)
 # loop to drive through all of the search result pages
-for i in range(1, num_pages+1): 
-        print ('Getting page', i)
-        start_num = str(i*10) 
-        current_page = ''.join([final_url, '&start=', start_num])
-        
+for i in range(1, num_pages): 
+    print ('Getting page', i)
+    start_num = str(i) 
+    current_page = ''.join([final_url, '&start=', start_num])
+       
+    page_obj = get_soup(current_page)
 
-page_obj = get_soup(current_page)
+    # the job listings are only in the center collumn so we only iterate through there
+    job_link_area = page_obj.find(id = 'resultsCol')
 
-# the job listings are only in the center collumn so we only iterate through there
-job_link_area = page_obj.find(id = 'resultsCol')
+    
+    all_urls = [base_url + link.get('href') for link in job_link_area.find_all('a')]
+ 
+    #job_URLS = filter(lambda x:'clk' in x, job_URLS)
+    # using python generator expressions
+    job_urls = [url for url in all_urls if job_bool(url)]
 
-# get all urls and filter using a magic lambda function
-job_URLS = [base_url + link.get('href') for link in job_link_area.find_all('a')]
-job_URLS = filter(lambda x:'clk' in x, job_URLS)
-
-# now grab the text from each listing with our other function.
-for j in xrange(0,len(job_URLS)):
-            final_description = clean_html(job_URLS[j])
-            if final_description: # Only append if clean_html was succesful
+    # now grab the text from each listing with our other function.
+    for j in range(0, len(job_urls)):
+        final_description = clean_html(job_urls[j])
+        if final_description: # Only append if clean_html was succesful
                 job_descriptions.append(final_description)
-            sleep(1)
+
+    for k in job_descriptions:
+        keywords_all.extend(k)
+        
 
 num_jobDesc = len(job_descriptions)
 
 print ('Finished collecting descriptions.')
-print ('Number of job descriptions succesfully found: ', num_jobDesc)
+print ('Number of job descriptions found: ', num_jobDesc)
 
-# now to count how many times a word shows up in all of the job listings.
-doc_frequency = Counter()
-[doc_frequency.update(item) for item in job_descriptions]
 
-keyword_dict = Counter(doc_frequency)
-keyword_fieldnames = [keyword, count]
-keyword_writer = csv.DictWriter(csv_name, fieldnames = keyword_fieldnames)
+# count how many times a word shows up in all of the job listings.
+#word_frequency = Counter()
 
-keyword_writer.writeheader()
-keyword_writer.writerows()
+#[word_frequency.update(item) for item in keywords_all]
+
+keyword_count = Counter(keywords_all).most_common()
+keyword_set = set(keywords_all)
+
+keyword_fieldnames = ("keyword", "count")
+
+with open("4_26.csv", mode='w', newline= '') as csv_file:
+    keyword_writer = csv.writer(csv_file, dialect='excel')
+
+    keyword_writer.writerow(keyword_fieldnames)
+    
+    for pair in keyword_count:
+        keyword_writer.writerow([pair[0], pair[1]])
+print("CSV done.")
